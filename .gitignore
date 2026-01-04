@@ -1,0 +1,40 @@
+# PocketBase - NO subir la base de datos ni archivos generados
+pb_data/
+pb_migrations/
+pocketbase.exe
+pocketbase
+
+# Logs
+*.log
+logs/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Dependencias (si agregas Node.js en el futuro)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Archivos temporales
+tmp/
+temp/
+*.tmp
+
+# Variables de entorno (si creas un .env)
+.env
+.env.local
+.env.production
+
+# Archivos de backup
+*.bak
+*.backup
