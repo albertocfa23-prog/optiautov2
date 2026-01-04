@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPTIAUTO - Gestión de Vehículos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Pantalla de autenticación -->
+        <div id="auth-screen" class="screen">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <h1>🚗 OPTIAUTO</h1>
+                    <p>Sistema de Gestión de Vehículos</p>
+                </div>
+
+                <div id="login-form" class="auth-form active">
+                    <h2>Iniciar Sesión</h2>
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label for="login-email">Email</label>
+                            <input type="email" id="login-email" required autocomplete="username">
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">Contraseña</label>
+                            <input type="password" id="login-password" required autocomplete="current-password">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Ingresar</button>
+                        <div class="auth-switch">
+                            ¿No tienes cuenta? <a href="#" id="show-register">Regístrate</a>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="register-form" class="auth-form">
+                    <h2>Crear Cuenta</h2>
+                    <form id="registerForm">
+                        <div class="form-group">
+                            <label for="register-email">Email</label>
+                            <input type="email" id="register-email" required autocomplete="email">
+                        </div>
+                        <div class="form-group">
+                            <label for="register-password">Contraseña</label>
+                            <input type="password" id="register-password" required minlength="8" autocomplete="new-password">
+                        </div>
+                        <div class="form-group">
+                            <label for="register-password-confirm">Confirmar Contraseña</label>
+                            <input type="password" id="register-password-confirm" required minlength="8" autocomplete="new-password">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Registrarse</button>
+                        <div class="auth-switch">
+                            ¿Ya tienes cuenta? <a href="#" id="show-login">Inicia sesión</a>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="auth-message" class="message"></div>
+            </div>
+        </div>
+
+        <!-- Dashboard principal -->
+        <div id="dashboard-screen" class="screen hidden">
+            <header class="dashboard-header">
+                <div class="header-content">
+                    <h1>🚗 OPTIAUTO</h1>
+                    <div class="user-info">
+                        <span id="user-name">Usuario</span>
+                        <span id="user-role" class="badge">client</span>
+                        <button id="logout-btn" class="btn btn-secondary">Cerrar Sesión</button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="dashboard-main">
+                <!-- Navegación por pestañas -->
+                <div class="tabs-nav">
+                    <button class="tab-btn active" data-tab="vehicles">Mis Vehículos</button>
+                    <button class="tab-btn" data-tab="workshops">Talleres y Citas</button>
+                </div>
+
+                <!-- Pestaña: Mis Vehículos -->
+                <div id="tab-vehicles" class="tab-content active">
+                    <div class="actions-bar">
+                        <h2>Mis Vehículos</h2>
+                        <button id="add-vehicle-btn" class="btn btn-primary">+ Añadir Vehículo</button>
+                    </div>
+                    <div id="vehicles-container"></div>
+                </div>
+
+                <!-- Pestaña: Talleres y Citas -->
+                <div id="tab-workshops" class="tab-content hidden">
+                    <h2>Talleres Disponibles</h2>
+                    <div id="workshops-list"></div>
+                    <div id="booking-section"></div>
+
+                    <h2 class="mt-8">Mis Citas</h2>
+                    <div id="appointments-list"></div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Modal: Añadir/Editar Vehículo -->
+        <div id="vehicle-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="vehicle-modal-title">Añadir Vehículo</h2>
+                    <button class="close-btn" id="close-vehicle-modal">&times;</button>
+                </div>
+                <form id="vehicle-form">
+                    <input type="hidden" id="vehicle-id">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Marca *</label>
+                            <input type="text" name="make" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Modelo *</label>
+                            <input type="text" name="model" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Año *</label>
+                            <input type="number" name="year" required min="1900" max="2030">
+                        </div>
+                        <div class="form-group">
+                            <label>Kilómetros *</label>
+                            <input type="number" name="km" required min="0">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="cancel-vehicle-btn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+                <div id="vehicle-modal-message" class="message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.21.1/dist/pocketbase.umd.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
