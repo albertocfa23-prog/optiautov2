@@ -1,122 +1,18 @@
-// app.js - Punto de entrada principal de la aplicación
-
-import { initAuth, isAuthenticated, getCurrentUser } from './auth.js';
-import { initVehicles } from './vehicles.js';
-
-// Configuración de PocketBase
-// Detectar automáticamente si estamos en local o producción
-const PB_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://127.0.0.1:8090'
-    : 'https://optiauto.agarnet.duckdns.org';
-
-// Inicializar PocketBase (disponible globalmente desde el CDN)
+const PB_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8090' : 'https://optiauto.agarnet.duckdns.org';
 const pb = new PocketBase(PB_URL);
-
-// Hacer pb disponible globalmente para uso en otros módulos
-window.pb = pb;
-
-/**
- * Función principal de inicialización
- */
-function init() {
-    console.log('Inicializando OPTIAUTO...');
-    console.log('PocketBase URL:', PB_URL);
-
-    // Configurar autenticación persistente
-    pb.authStore.onChange((token, model) => {
-        console.log('Auth state changed:', model ? 'authenticated' : 'logged out');
-    });
-
-    // Verificar si hay sesión activa
-    checkAuth();
-
-    // Inicializar módulo de autenticación
-    initAuth(pb);
-
-    // Escuchar eventos de autenticación
-    window.addEventListener('auth-success', handleAuthSuccess);
-    window.addEventListener('auth-logout', handleLogout);
-}
-
-/**
- * Verifica si hay una sesión activa al cargar la página
- */
-function checkAuth() {
-    if (isAuthenticated(pb)) {
-        console.log('Sesión activa encontrada');
-        const user = getCurrentUser(pb);
-        console.log('Usuario:', user.username, '| Rol:', user.role);
-        showDashboard();
-    } else {
-        console.log('No hay sesión activa');
-        showAuthScreen();
-    }
-}
-
-/**
- * Maneja el evento de autenticación exitosa
- * @param {Event} e - Evento con datos del usuario
- */
-function handleAuthSuccess(e) {
-    console.log('Autenticación exitosa');
-    showDashboard();
-}
-
-/**
- * Maneja el cierre de sesión
- */
-function handleLogout() {
-    console.log('Cerrando sesión...');
-    showAuthScreen();
-}
-
-/**
- * Muestra la pantalla de autenticación
- */
-function showAuthScreen() {
-    const authScreen = document.getElementById('auth-screen');
-    const dashboardScreen = document.getElementById('dashboard-screen');
-
-    authScreen?.classList.remove('hidden');
-    dashboardScreen?.classList.add('hidden');
-}
-
-/**
- * Muestra el dashboard y carga los vehículos
- */
-function showDashboard() {
-    const authScreen = document.getElementById('auth-screen');
-    const dashboardScreen = document.getElementById('dashboard-screen');
-
-    authScreen?.classList.add('hidden');
-    dashboardScreen?.classList.remove('hidden');
-
-    // Inicializar módulo de vehículos
-    initVehicles(pb);
-}
-
-/**
- * Manejo de errores globales
- */
-window.addEventListener('error', (e) => {
-    console.error('Error global:', e.error);
-});
-
-/**
- * Manejo de promesas rechazadas no capturadas
- */
-window.addEventListener('unhandledrejection', (e) => {
-    console.error('Unhandled promise rejection:', e.reason);
-});
-
-// Inicializar la aplicación cuando el DOM esté listo
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
-
-// Exportar pb para que esté disponible en la consola de desarrollo
-window.PocketBase = pb;
-
-console.log('OPTIAUTO app.js cargado');
+pb.autoCancellation(false);
+let currentUser = null;
+let vehicles = [];
+let selectedVehicleForAdd = null;
+const MAINTENANCE_TYPES = ["Cambio de aceite y filtros","Presión y estado de neumáticos","Niveles de líquidos (frenos, refrigerante, etc.)","Inspección de frenos","Inspección de batería","Bujías","Correas"];
+const MAINTENANCE_INTERVALS = {"Cambio de aceite y filtros":15000,"Inspección de frenos":30000,"Correas":100000,"Presión y estado de neumáticos":10000,"Niveles de líquidos (frenos, refrigerante, etc.)":15000,"Inspección de batería":40000,"Bujías":60000};
+async function fetchSmartcartApi(registrationNumber){if(!registrationNumber)return[];console.log('API call:',registrationNumber);const username="TU_USERNAME";const url="https://www.regcheck.org.uk/api/reg.asmx/CheckSpain";try{const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({registrationNumber,username})});const xmlText=await response.text();const parser=new DOMParser();const xmlDoc=parser.parseFromString(xmlText,"text/xml");const make=xmlDoc.querySelector("CarMake CurrentTextValue")?.textContent;const model=xmlDoc.querySelector("CarModel")?.textContent;const year=xmlDoc.querySelector("RegistrationYear")?.textContent;if(make&&model){return[{make,model,year:year?parseInt(year):null,description:"Datos de matrícula"}];}return[];}catch(error){console.error("Error:",error);throw error;}}
+pb.authStore.onChange((token,model)=>{currentUser=model;if(!currentUser){vehicles=[];selectedVehicleForAdd=null;}renderApp();},true);
+function renderApp(){const app=document.getElementById('app');app.innerHTML=currentUser?renderDashboard():renderAuth();currentUser?setupDashboard():setupAuth();}
+function renderAuth(){return '<div class="min-h-screen flex items-center justify-center bg-gray-100"><div class="w-full max-w-md bg-white rounded-lg shadow-md p-8"><h2 id="auth-title" class="text-2xl font-bold text-center mb-6">Iniciar Sesión</h2><form id="auth-form"><input type="email" id="auth-email" placeholder="Email" class="shadow border rounded w-full py-2 px-3 mb-3" required/><input type="password" id="auth-password" placeholder="Contraseña" class="shadow border rounded w-full py-2 px-3 mb-3" required/><p id="auth-error" class="text-red-500 text-xs mb-3 hidden"></p><button type="submit" class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"><span id="auth-btn-text">Entrar</span></button></form><p class="text-center text-sm text-gray-600 mt-4"><span id="auth-switch-text">¿No tienes cuenta?</span><button type="button" id="auth-switch" class="text-blue-500 hover:underline ml-1">Regístrate</button></p></div></div>';}
+function renderDashboard(){return '<div class="container mx-auto p-4 md:p-8"><header class="flex justify-between items-center mb-8"><div><h1 class="text-3xl font-bold">🚗 OPTIAUTO</h1><p class="text-sm text-gray-500">'+currentUser.email+'</p></div><button id="logout-btn" class="text-gray-600 hover:text-red-500"><span class="mr-2 hidden md:inline">Cerrar Sesión</span>🚪</button></header>'+(selectedVehicleForAdd?renderAddForm():renderSearch())+'<div><h2 class="text-3xl font-bold mb-6">Mis Vehículos</h2><div id="vehicles-list">'+(vehicles.length?vehicles.map(renderVehicleCard).join(''):'<p class="text-center text-gray-500 mt-8">Sin vehículos</p>')+'</div></div></div>';}
+function renderSearch(){return '<div class="bg-white p-6 rounded-lg shadow-lg mb-8"><h2 class="text-2xl font-bold mb-4">Buscar por Matrícula</h2><div class="flex gap-2"><input id="search-input" placeholder="1234ABC" class="shadow border rounded w-full py-2 px-3"/><button id="search-btn" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">🔍 Buscar</button></div><button id="demo-btn" class="w-full mt-4 bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Demo</button><p id="search-error" class="text-red-500 text-sm mt-2 hidden"></p><div id="search-results" class="mt-4"></div></div>';}
+function renderAddForm(){return '<div class="bg-white p-6 rounded-lg shadow-lg mb-8"><h2 class="text-2xl font-bold mb-4">Añadir Vehículo</h2><form id="add-form"><div class="grid grid-cols-2 gap-4"><input id="make" value="'+(selectedVehicleForAdd.make||'')+'" readonly placeholder="Marca" class="shadow border rounded py-2 px-3" required/><input id="model" value="'+(selectedVehicleForAdd.model||'')+'" readonly placeholder="Modelo" class="shadow border rounded py-2 px-3" required/><input type="number" id="year" value="'+(selectedVehicleForAdd.year||'')+'" readonly placeholder="Año" class="shadow border rounded py-2 px-3" required/><input type="number" id="km" placeholder="Km" class="shadow border rounded py-2 px-3" required/></div><div class="mt-6 p-4 bg-gray-50 rounded-lg"><h3 class="font-bold mb-3">Mantenimientos realizados?</h3><div class="grid grid-cols-2 gap-3">'+MAINTENANCE_TYPES.map(t=>'<label class="flex items-center"><input type="checkbox" class="maint-check" data-type="'+t+'"/><span class="ml-2 text-sm">'+t+'</span></label>').join('')+'</div></div><button type="submit" class="w-full bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-4">➕ Añadir</button></form></div>';}
+function renderVehicleCard(v){return '<div class="bg-white rounded-lg shadow-md p-6 mb-6"><div class="flex justify-between"><div><h3 class="text-xl font-bold">'+v.make+' '+v.model+' ('+v.year+')</h3><p class="text-gray-600">'+(v.km||0)+' km</p></div><button class="delete-btn bg-red-500 text-white px-4 py-2 rounded" data-vid="'+v.id+'">Eliminar</button></div></div>';}
+function setupAuth(){let isLogin=true;document.getElementById('auth-switch')?.addEventListener('click',()=>{isLogin=!isLogin;document.getElementById('auth-title').textContent=isLogin?'Iniciar Sesión':'Registrarse';document.getElementById('auth-btn-text').textContent=isLogin?'Entrar':'Crear Cuenta';document.getElementById('auth-switch-text').textContent=isLogin?'¿No tienes cuenta?':'¿Ya tienes cuenta?';document.getElementById('auth-switch').textContent=isLogin?'Regístrate':'Inicia Sesión';});document.getElementById('auth-form')?.addEventListener('submit',async(e)=>{e.preventDefault();const email=document.getElementById('auth-email').value;const password=document.getElementById('auth-password').value;const errorEl=document.getElementById('auth-error');try{if(isLogin){await pb.collection('users').authWithPassword(email,password);}else{await pb.collection('users').create({email,password,passwordConfirm:password});await pb.collection('users').authWithPassword(email,password);}}catch(err){errorEl.textContent=err.message||'Error';errorEl.classList.remove('hidden');}});}
+function setupDashboard(){document.getElementById('logout-btn')?.addEventListener('click',()=>{pb.realtime.unsubscribe();pb.authStore.clear();});loadVehicles();if(!selectedVehicleForAdd){document.getElementById('search-btn')?.addEventListener('click',handleSearch);document.getElementById('demo-btn')?.addEventListener('click',()=>{selectedVehicleForAdd={make:"SEAT",model:"LEON",year:2021};renderApp();});}else{document.getElementById('add-form')?.addEventListener('submit',handleAddVehicle);}document.querySelectorAll(
